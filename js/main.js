@@ -2,8 +2,8 @@
 let canvas;
 let mouseIsPressed = false;
 let cells = [];
-let world_size = 64;
-let cell_size = 10;
+let world_size = 32;
+let cell_size = 15;
 
 
 function setup() {
@@ -34,7 +34,14 @@ function windowResized() {
 
 // A single simulation step
 function tick(){
-
+  for(let i = 0; i < cells.length; i++){
+    let kernel = getCellKernel(i);
+    let velocitySum = createVector(0, 0);
+    for(let v = 0; v < kernel.length; v++){
+      velocitySum.add(cells[kernel[v]]);
+    }
+    cells[i] = velocitySum.div(kernel.length);
+  }
 }
 
 
@@ -72,13 +79,12 @@ function getCellLeft(index){
 
 
 function draw(){
+  tick();
   drawFrame();
   let cellUnderMouse = screenToCellSpace(createVector(mouseX, mouseY));
   let mouseVelocity = createVector(mouseX - pmouseX, mouseY - pmouseY);
   if(cellUnderMouse != -1){
-    cells[cellUnderMouse] = mouseVelocity;
-    colorCell(cellUnderMouse, color(0, 0, 0));
-    colorCells(getCellKernel(cellUnderMouse), 0);
+    cells[cellUnderMouse] = mouseVelocity.mult(10);
   }
 }
 
@@ -86,6 +92,12 @@ function draw(){
 function drawFrame()
 {
   background(BG_COL);
+
+  // Draw outline around simulation bounds
+  stroke(0);
+  strokeWeight(1);
+  fill(color(0, 0, 0, 0));
+  rect(0, 0, cell_size * world_size, cell_size * world_size);
   for(let i = 0; i < cells.length; i++){
     let cellScreenPos = cellToScreenSpace(i);
     drawVector(cells[i], cellScreenPos);
@@ -137,6 +149,6 @@ function screenToCellSpace(point){
 
 function keyPressed(){
   if(key == ' '){
-    drawFrame();
+    tick();
   }
 }
