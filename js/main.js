@@ -62,11 +62,26 @@ function tick(){
 
   // Apply density to cells
   if(cellUnderMouse != -1 && mouseIsPressed){
-    cells[cellUnderMouse].density = 1;
+    cells[cellUnderMouse].density = 255;
   }
 
-  diffuseVelocity();
-  diffuseDensity();
+  diffuseAll();
+}
+
+
+function diffuseAll(){
+  for(let i = 0; i < cells.length; i++){
+    let kernel = getKernelAdjacent(i);
+
+    let densitySum = 0;
+    let velocitySum = createVector(0, 0);
+    for(let v = 0; v < kernel.length; v++){
+      densitySum += (cells[kernel[v]].density);
+      velocitySum.add(cells[kernel[v]].velocity);
+    }
+    cells[i].density = densitySum / kernel.length;
+    cells[i].velocity = velocitySum.div(kernel.length);
+  }
 }
 
 
@@ -111,19 +126,23 @@ function render()
   rectMode(CORNER);
   rect(cellPositionOffset.x - HALF_CELL_SIZE, cellPositionOffset.y - HALF_CELL_SIZE, CELL_SIZE * WORLD_SIZE, CELL_SIZE * WORLD_SIZE);
 
-  // Render cell velocities
-  for(let i = 0; i < cells.length; i++){
-    let cellScreenPos = cellToScreenSpace(i);
-    drawVector(cells[i].velocity, cellScreenPos);
-  }
-
   // Render cell densities
   noStroke();
   rectMode(CENTER);
+  let densityVisibilityMultiplier = 5;
   for(let i = 0; i < cells.length; i++){
     let cellScreenPos = cellToScreenSpace(i);
-    fill(color(0, 0, 0, cells[i].density * 255));
-    rect(cellScreenPos.x, cellScreenPos.y, CELL_SIZE, CELL_SIZE);
+    fill(color(255,204,204, 255));
+    let size = cells[i].velocity.mag();
+    rect(cellScreenPos.x, cellScreenPos.y, size, size);
+    //rect(cellScreenPos.x, cellScreenPos.y, CELL_SIZE, CELL_SIZE);
+  }
+
+  // Render cell velocities
+  for(let i = 0; i < cells.length; i++){
+    let cellScreenPos = cellToScreenSpace(i);
+    fill(0);
+    drawVector(cells[i].velocity, cellScreenPos);
   }
 
   // Render text
