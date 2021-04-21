@@ -1,6 +1,10 @@
 let PARENT_ID = 'p5-canvas-container';
+let FPS_ID = 'interface-fps';
+let CELL_COUNT_ID = 'interface-cell-count'
 
 let canvas;
+let INTERFACE_FPS;
+let INTERFACE_CELL_COUNT;
 
 let WORLD_SIZE = 64;
 let CELL_SIZE = 8;
@@ -9,23 +13,27 @@ let CELL_COUNT = 16;
 
 let cells;
 
-
-
 function setup() {
   let parentStyle = window.getComputedStyle(document.getElementById(PARENT_ID));
   canvas = createCanvas(parseInt(parentStyle.width), parseInt(parentStyle.height));
   canvas.parent(PARENT_ID);
-  cells = [];
+
+  // Initialize interface stuff
+  INTERFACE_FPS = document.getElementById(FPS_ID);
+  INTERFACE_CELL_COUNT = document.getElementById(CELL_COUNT_ID);
+  INTERFACE_CELL_COUNT.onchange = getInterfaceUpdates;
 
   // Set up some other stuff
-  updateCellSize();
+  getInterfaceUpdates();
   initializeCells();
+  updateCellSize();
   noStroke();
   render();
 }
 
 
 function initializeCells(){
+  cells = [];
   for(let i = 0; i < WORLD_SIZE * WORLD_SIZE; i++){
     let value = {
       velocity: createVector(0, 0), 
@@ -111,6 +119,9 @@ function diffuseDensity(){
 function draw(){
   tick();
   render();
+  if(frameCount % 10 == 0){
+    updateDataOutput();
+  }
 }
 
 
@@ -119,16 +130,14 @@ function render()
   background(BG_COL);
 
   // Render cell densities
-  noStroke();
-  rectMode(CENTER);
-  let densityVisibilityMultiplier = 5;
-  for(let i = 0; i < cells.length; i++){
-    let cellScreenPos = cellToScreenSpace(i);
-    fill(color(255,204,204, 255));
-    let size = cells[i].velocity.mag();
-    rect(cellScreenPos.x, cellScreenPos.y, size, size);
-    //rect(cellScreenPos.x, cellScreenPos.y, CELL_SIZE, CELL_SIZE);
-  }
+  // noStroke();
+  // for(let i = 0; i < cells.length; i++){
+  //   let cellScreenPos = cellToScreenSpace(i);
+  //   fill(color(0, 0, 0, 255));
+  //   let size = cells[i].velocity.mag();
+  //   rect(cellScreenPos.x, cellScreenPos.y, size, size);
+  //   //rect(cellScreenPos.x, cellScreenPos.y, CELL_SIZE, CELL_SIZE);
+  // }
 
   // Render cell velocities
   for(let i = 0; i < cells.length; i++){
@@ -136,6 +145,18 @@ function render()
     fill(0);
     drawVector(cells[i].velocity, cellScreenPos);
   }
+}
+
+
+function updateDataOutput(){
+  INTERFACE_FPS.innerHTML = round(frameRate(), 1);
+}
+
+
+function getInterfaceUpdates(){
+  WORLD_SIZE = sqrt(INTERFACE_CELL_COUNT.value);
+  initializeCells();
+  updateCellSize();
 }
 
 

@@ -2,32 +2,38 @@
 @media screen and (orientation:portrait) {
    .grid-container{
       grid-template-columns: 10vw 80vw 10vw;
-      grid-template-rows: auto 80vw auto;
+      grid-template-rows: auto 80vw auto auto;
    }
 }
 
 @media screen and (orientation:landscape) {
    .grid-container{
       grid-template-columns: auto 80vh auto;
-      grid-template-rows: 10vh 80vh 10vh;
+      grid-template-rows: 10vh 80vh 10vh auto;
    }
+}
+
+body{
+   background-color: rgb(245, 247, 232) !important;
 }
 
 .grid-container{
    display: grid;
    min-height: 100vh;
-   background-color: rgb(223, 224, 212);
 }
 
-.grid-item{
-   grid-column-start: 2;
-   grid-column-end: 3;
-   grid-row-start: 2;
-   grid-row-end: 3;
+#p5-canvas-container{
+   grid-column: 2;
+   grid-row: 2;
+}
+
+#p5-interface{
+   grid-column: 2;
+   grid-row: 3;
 }
 
 canvas{
    position: relative;
    border-style: solid;
-   border-width: 0.3rem;
+   border-width: 0.1rem;
 }
