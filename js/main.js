@@ -43,7 +43,7 @@ function tick(){
   // Apply mouse velocity to cells
   let cellUnderMouse = screenToCellSpace(createVector(mouseX, mouseY));
   let mouseVelocity = createVector(mouseX - pmouseX, mouseY - pmouseY);
-  if(cellUnderMouse != -1){
+  if(cellUnderMouse != -1 && mouseIsPressed){
     cells[cellUnderMouse] = mouseVelocity.mult(10);
   }
 
