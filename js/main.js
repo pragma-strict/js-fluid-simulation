@@ -1,10 +1,12 @@
-let PARENT_ID = 'p5-canvas-container';
-let FPS_ID = 'interface-fps';
-let CELL_COUNT_ID = 'interface-cell-count'
+let ID_PARENT = 'p5-canvas-container';
+let ID_FPS = 'interface-fps';
+let ID_CELL_COUNT = 'interface-cell-count'
+let ID_VISCOSITY = 'interface-viscosity';
 
 let canvas;
 let INTERFACE_FPS;
 let INTERFACE_CELL_COUNT;
+let INTERFACE_VISCOSITY;
 
 let WORLD_SIZE = 64;
 let CELL_SIZE = 8;
@@ -12,27 +14,31 @@ let HALF_CELL_SIZE = 8/2;
 let CELL_COUNT = 16;
 
 let cells;
+let viscosity = 1;
 
 function setup() {
-  let parentStyle = window.getComputedStyle(document.getElementById(PARENT_ID));
+  let parentStyle = window.getComputedStyle(document.getElementById(ID_PARENT));
   canvas = createCanvas(parseInt(parentStyle.width), parseInt(parentStyle.height));
-  canvas.parent(PARENT_ID);
+  canvas.parent(ID_PARENT);
 
   // Initialize interface stuff
-  INTERFACE_FPS = document.getElementById(FPS_ID);
-  INTERFACE_CELL_COUNT = document.getElementById(CELL_COUNT_ID);
-  INTERFACE_CELL_COUNT.onchange = getInterfaceUpdates;
+  INTERFACE_FPS = document.getElementById(ID_FPS);
+  INTERFACE_CELL_COUNT = document.getElementById(ID_CELL_COUNT);
+  INTERFACE_CELL_COUNT.onchange = initializeCells;
+  INTERFACE_VISCOSITY = document.getElementById(ID_VISCOSITY);
+  INTERFACE_VISCOSITY.onchange = getInterfaceUpdates;
 
   // Set up some other stuff
   getInterfaceUpdates();
   initializeCells();
-  updateCellSize();
   noStroke();
   render();
 }
 
 
+// Clear cells and reinitialize them
 function initializeCells(){
+  WORLD_SIZE = sqrt(INTERFACE_CELL_COUNT.value);
   cells = [];
   for(let i = 0; i < WORLD_SIZE * WORLD_SIZE; i++){
     let value = {
@@ -41,11 +47,12 @@ function initializeCells(){
     };
     cells.push(value);
   }
+  updateCellSize();
 }
 
 
 function windowResized() {
-  let parentStyle = window.getComputedStyle(document.getElementById(PARENT_ID));
+  let parentStyle = window.getComputedStyle(document.getElementById(ID_PARENT));
 	resizeCanvas(parseInt(parentStyle.width), parseInt(parentStyle.height));
   updateCellSize();
 	render();
@@ -64,7 +71,7 @@ function tick(){
   let cellUnderMouse = screenToCellSpace(createVector(mouseX, mouseY));
   let mouseVelocity = createVector(mouseX - pmouseX, mouseY - pmouseY);
   if(cellUnderMouse != -1 && mouseIsPressed){
-    cells[cellUnderMouse].velocity = mouseVelocity.mult(10);
+    cells[cellUnderMouse].velocity = mouseVelocity.mult(3);
   }
 
   // Apply density to cells
@@ -72,7 +79,7 @@ function tick(){
     cells[cellUnderMouse].density = 255;
   }
 
-  diffuseAll();
+  diffuseVelocity();
 }
 
 
@@ -94,12 +101,15 @@ function diffuseAll(){
 
 function diffuseVelocity(){
   for(let i = 0; i < cells.length; i++){
+    let originalVelocity = cells[i].velocity;
     let kernel = getKernelAdjacent(i);
     let velocitySum = createVector(0, 0);
     for(let v = 0; v < kernel.length; v++){
       velocitySum.add(cells[kernel[v]].velocity);
     }
-    cells[i].velocity = velocitySum.div(kernel.length);
+    let velocityAverage = velocitySum.div(kernel.length);
+    let newVelocity = originalVelocity.add((velocityAverage.sub(originalVelocity)).mult(viscosity));
+    cells[i].velocity = newVelocity;
   }
 }
 
@@ -154,9 +164,7 @@ function updateDataOutput(){
 
 
 function getInterfaceUpdates(){
-  WORLD_SIZE = sqrt(INTERFACE_CELL_COUNT.value);
-  initializeCells();
-  updateCellSize();
+  viscosity = parseFloat(INTERFACE_VISCOSITY.value);
 }
 
 
