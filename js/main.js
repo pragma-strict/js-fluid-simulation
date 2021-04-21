@@ -1,22 +1,24 @@
+let PARENT_ID = 'p5-canvas-container';
 
 let canvas;
 
 let WORLD_SIZE = 64;
 let CELL_SIZE = 8;
 let HALF_CELL_SIZE = 8/2;
+let CELL_COUNT = 16;
 
 let cells;
-let cellPositionOffset;
+
 
 
 function setup() {
-  // Initialize some variables
-  canvas = createCanvas(windowWidth, windowHeight);
-  cellPositionOffset = createVector(round(width/2 - (WORLD_SIZE * CELL_SIZE) /2), round(height/2 - (WORLD_SIZE * CELL_SIZE) /2));
+  let parentStyle = window.getComputedStyle(document.getElementById(PARENT_ID));
+  canvas = createCanvas(parseInt(parentStyle.width), parseInt(parentStyle.height));
+  canvas.parent(PARENT_ID);
   cells = [];
 
   // Set up some other stuff
-  repositionCanvas();
+  updateCellSize();
   initializeCells();
   noStroke();
   render();
@@ -34,20 +36,17 @@ function initializeCells(){
 }
 
 
-function repositionCanvas()
-{
-	var x = windowWidth - width;
-	var y = windowHeight - height;
-	canvas.position(x, y);
-  cellPositionOffset = createVector(round(width/2 - (WORLD_SIZE * CELL_SIZE) /2), round(height/2 - (WORLD_SIZE * CELL_SIZE) /2));
+function windowResized() {
+  let parentStyle = window.getComputedStyle(document.getElementById(PARENT_ID));
+	resizeCanvas(parseInt(parentStyle.width), parseInt(parentStyle.height));
+  updateCellSize();
+	render();
 }
 
 
-function windowResized() {
-	resizeCanvas(windowWidth, windowHeight);
-	repositionCanvas();
-  cellPositionOffset = createVector(round(width/2 - (WORLD_SIZE * CELL_SIZE) /2), round(height/2 - (WORLD_SIZE * CELL_SIZE) /2));
-	render();
+function updateCellSize(){
+  CELL_SIZE = width / WORLD_SIZE;
+  HALF_CELL_SIZE = CELL_SIZE /2;
 }
 
 
@@ -119,13 +118,6 @@ function render()
 {
   background(BG_COL);
 
-  // Draw outline around simulation bounds
-  stroke(0);
-  strokeWeight(1);
-  fill(color(0, 0, 0, 0));
-  rectMode(CORNER);
-  rect(cellPositionOffset.x - HALF_CELL_SIZE, cellPositionOffset.y - HALF_CELL_SIZE, CELL_SIZE * WORLD_SIZE, CELL_SIZE * WORLD_SIZE);
-
   // Render cell densities
   noStroke();
   rectMode(CENTER);
@@ -144,16 +136,6 @@ function render()
     fill(0);
     drawVector(cells[i].velocity, cellScreenPos);
   }
-
-  // Render text
-  fill(0);
-  noStroke();
-  textSize(24);
-  text("Vector Field Test", cellPositionOffset.x, cellPositionOffset.y - 15);
-  textSize(16);
-  text("FPS: " + floor(frameRate()), 
-    cellPositionOffset.x + (CELL_SIZE * WORLD_SIZE) - textWidth("FPS: 600"), 
-    cellPositionOffset.y + (CELL_SIZE * WORLD_SIZE) - 10);
 }
 
 
@@ -227,13 +209,13 @@ function cellToScreenSpace(index){
   y = floor(index / WORLD_SIZE);
   x *= CELL_SIZE;
   y *= CELL_SIZE;
-  return createVector(x + cellPositionOffset.x, y + cellPositionOffset.y);
+  return createVector(x, y);
 }
 
 
 function screenToCellSpace(point){
-  let x = floor((point.x - cellPositionOffset.x) / CELL_SIZE);
-  let y = floor((point.y - cellPositionOffset.y) / CELL_SIZE);
+  let x = floor(point.x / CELL_SIZE);
+  let y = floor(point.y / CELL_SIZE);
   if(x >= WORLD_SIZE || x < 0 || y >= WORLD_SIZE || y < 0){
     return -1;
   }
