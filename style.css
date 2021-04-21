@@ -24,6 +24,7 @@ body {
   display: -ms-grid;
   display: grid;
   min-height: 100vh;
+  padding-bottom: 5rem;
 }
 
 #p5-canvas-container {
