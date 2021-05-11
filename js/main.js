@@ -6,25 +6,35 @@
   - Add advection so that velocity actually transfers based on its direction
 */
 
+
+/* DOM Element IDs */
 let ID_PARENT = 'p5-canvas-container';
 let ID_FPS = 'interface-fps';
 let ID_CELL_COUNT = 'interface-cell-count'
 let ID_VISCOSITY = 'interface-viscosity';
-
 let canvas;
+
+/* Interface DOM Elements */
 let INTERFACE_FPS;
 let INTERFACE_CELL_COUNT;
 let INTERFACE_VISCOSITY;
 
+/* Constants */
 let WORLD_SIZE = 64;
 let CELL_SIZE = 8;
 let HALF_CELL_SIZE = 8/2;
 let CELL_COUNT = 16;
 
+/* Cell data (simulation state) */
 let cells;
 let cellsPrev;  // Cell states at previous time step
+
+/* Settings */
 let viscosity = 1;
 let timeStep = 0.1;
+
+
+
 
 function setup() {
   let parentStyle = window.getComputedStyle(document.getElementById(ID_PARENT));
