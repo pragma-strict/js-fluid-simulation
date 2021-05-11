@@ -1,3 +1,11 @@
+/*
+  TODO:
+  - There's some kind of memory leak or something that's causing this thing to lag the browser
+  - I added a second array to store previous values - not sure if this was done correctly
+  - Make a better averaging function that allows for viscosity values > 1
+  - Add advection so that velocity actually transfers based on its direction
+*/
+
 let ID_PARENT = 'p5-canvas-container';
 let ID_FPS = 'interface-fps';
 let ID_CELL_COUNT = 'interface-cell-count'
@@ -14,7 +22,9 @@ let HALF_CELL_SIZE = 8/2;
 let CELL_COUNT = 16;
 
 let cells;
+let cellsPrev;  // Cell states at previous time step
 let viscosity = 1;
+let timeStep = 0.1;
 
 function setup() {
   let parentStyle = window.getComputedStyle(document.getElementById(ID_PARENT));
@@ -38,16 +48,30 @@ function setup() {
 
 // Clear cells and reinitialize them
 function initializeCells(){
-  WORLD_SIZE = sqrt(INTERFACE_CELL_COUNT.value);
+  WORLD_SIZE = sqrt(INTERFACE_CELL_COUNT.value);  // This line probably shouldn't be here
   cells = [];
+  cellsPrev = [];
   for(let i = 0; i < WORLD_SIZE * WORLD_SIZE; i++){
     let value = {
       velocity: createVector(0, 0), 
       density: 0
     };
     cells.push(value);
+    cellsPrev.push(value);
   }
   updateCellSize();
+}
+
+
+function clearCellArray(arrayToClear){
+  arrayToClear = [];
+  for(let i = 0; i < WORLD_SIZE * WORLD_SIZE; i++){
+    let value = {
+      velocity: createVector(0, 0), 
+      density: 0
+    };
+    arrayToClear.push(value);
+  }
 }
 
 
@@ -76,37 +100,47 @@ function tick(){
 
   // Apply density to cells
   if(cellUnderMouse != -1 && mouseIsPressed){
-    cells[cellUnderMouse].density = 255;
+    cells[cellUnderMouse].density = 1;
   }
 
-  diffuseVelocity();
+  // diffuseVelocity();
+  diffuseDensity();
+
+  // Dump the cell states into the "prev" array to get ready for next tick
+  cellsPrev = cells;
 }
 
 
 function diffuseAll(){
   for(let i = 0; i < cells.length; i++){
     let kernel = getKernelAdjacent(i);
-
     let densitySum = 0;
     let velocitySum = createVector(0, 0);
+    let originalVelocity = cells[i].velocity;
+
     for(let v = 0; v < kernel.length; v++){
       densitySum += (cells[kernel[v]].density);
       velocitySum.add(cells[kernel[v]].velocity);
     }
+
     cells[i].density = densitySum / kernel.length;
-    cells[i].velocity = velocitySum.div(kernel.length);
+    let velocityAverage = velocitySum.div(kernel.length);
+    let newVelocity = originalVelocity.add((velocityAverage.sub(originalVelocity)).mult(viscosity));
+    cells[i].velocity = newVelocity;
   }
 }
 
 
 function diffuseVelocity(){
   for(let i = 0; i < cells.length; i++){
-    let originalVelocity = cells[i].velocity;
     let kernel = getKernelAdjacent(i);
     let velocitySum = createVector(0, 0);
+    let originalVelocity = cells[i].velocity;
+
     for(let v = 0; v < kernel.length; v++){
       velocitySum.add(cells[kernel[v]].velocity);
     }
+
     let velocityAverage = velocitySum.div(kernel.length);
     let newVelocity = originalVelocity.add((velocityAverage.sub(originalVelocity)).mult(viscosity));
     cells[i].velocity = newVelocity;
@@ -118,19 +152,50 @@ function diffuseDensity(){
   for(let i = 0; i < cells.length; i++){
     let kernel = getKernelAdjacent(i);
     let densitySum = 0;
+    let originalDensity = cells[i].density;
+
     for(let v = 0; v < kernel.length; v++){
       densitySum += (cells[kernel[v]].density);
     }
-    cells[i].density = densitySum / kernel.length;
+
+    let densityAverage = densitySum / kernel.length;
+    let newDensity = originalDensity += (densityAverage - originalDensity) * viscosity;
+    cells[i].density = newDensity;
   }
 }
 
 
+function diffuseDensityNew(iterations)
+{
+  let a = viscosity * WORLD_SIZE * WORLD_SIZE; // * deltaTime
+  console.log("a: " + a);
+  for (let k = 0; k < iterations; k++) {
+    for (let i = 0; i < WORLD_SIZE; i++) {
+      console.log("test")
+      let kernel = getKernelAdjacent(i);
+      let densitySum = -1 * (cells[i].density);
+
+      for(let d = 0; d < kernel.length; d++){
+        densitySum += (cells[kernel[d]].density);
+      }
+      //console.log("density sum: " + densitySum);
+
+      let newValue = (cellsPrev[i] + a * densitySum) / (1 + 4 * a);
+      cells[i].density = newValue;
+      // x[IX(i,j)] = (x0[IX(i,j)] + a*(x[IX(i-1,j)]+x[IX(i+1,j)]+
+      // x[IX(i,j-1)]+x[IX(i,j+1)]))/(1+4*a);
+    }
+  }
+}
+
+
+
 function draw(){
-  tick();
-  render();
-  if(frameCount % 10 == 0){
+  if(frameCount % 15 == 0){
+    console.log("rendering")
     updateDataOutput();
+    tick();
+    render();
   }
 }
 
@@ -140,14 +205,12 @@ function render()
   background(BG_COL);
 
   // Render cell densities
-  // noStroke();
-  // for(let i = 0; i < cells.length; i++){
-  //   let cellScreenPos = cellToScreenSpace(i);
-  //   fill(color(0, 0, 0, 255));
-  //   let size = cells[i].velocity.mag();
-  //   rect(cellScreenPos.x, cellScreenPos.y, size, size);
-  //   //rect(cellScreenPos.x, cellScreenPos.y, CELL_SIZE, CELL_SIZE);
-  // }
+  noStroke();
+  for(let i = 0; i < cells.length; i++){
+    let cellScreenPos = cellToScreenSpace(i);
+    fill(color(0, 0, 0, cells[i].density * 255));
+    rect(cellScreenPos.x, cellScreenPos.y, CELL_SIZE, CELL_SIZE);
+  }
 
   // Render cell velocities
   for(let i = 0; i < cells.length; i++){
